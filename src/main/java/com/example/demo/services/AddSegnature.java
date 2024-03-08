@@ -59,7 +59,7 @@ public class AddSegnature {
         file.getParentFile().mkdirs();
         Security.addProvider(new BouncyCastleProvider());
         signSignature(SRC, DEST);
-        return "La signature a été ajoutée avec succès.";
+        return "La signature a été ajoutée avec succès,le fichier construit 'cv.pdf' existe dans le dossier File";
     	 } catch (Exception e) {
     	        e.printStackTrace();
     	        return "Erreur lors de l'ajout de la signature : "+e.getMessage();
