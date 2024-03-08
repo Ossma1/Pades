@@ -44,13 +44,11 @@ import com.itextpdf.signatures.*;
 @Service
 public class AddSegnature {
     public AddSegnature() {}
+	private static final String CERT_PATH = System.getProperty("user.dir")+"/Files/mon_keystore.p12";
 
-	private static final String CERT_PATH = "C:\\/Users\\/ousss\\/mon_keystore.p12";
-
-    public static final String SRC = "C:\\/Users\\/ousss\\/OneDrive\\/Bureau\\/f\\/hello.pdf";
-    public static final String DEST = "C:\\/Users\\/ousss\\/OneDrive\\/Bureau\\/f\\/cv.pdf";
-    public static final String DOC_TO_SIGN = "C:\\/Users\\/ousss\\/OneDrive\\/Bureau\\/f\\/cv2.pdf";
-    public static final String IMAGE_PATH = "C:\\\\/Users\\\\/ousss\\\\/OneDrive\\\\/Bureau\\\\/f\\\\/Signature.svg";
+    public static final String SRC = System.getProperty("user.dir")+"/Files/hello.pdf";
+    public static final String DEST = System.getProperty("user.dir")+"/Files/cv.pdf";
+    public static final String IMAGE_PATH = System.getProperty("user.dir")+"/Files/Signature.svg";
 
     private static final String SIGNATURE_NAME = "Signature1";
 
