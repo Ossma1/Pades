@@ -143,57 +143,7 @@ public class AddSegnature {
         return new PrivateKeySignature(pk, DigestAlgorithms.SHA512, BouncyCastleProvider.PROVIDER_NAME);
     }
     
-    public byte[] PdfSignedToPadesService(byte[] pdfContent, byte[] certificateBytes) throws Exception {
-    	  CMSSignedData cmsSignedData = new CMSSignedData(pdfContent);
-          SignerInformation signerInfo = (SignerInformation) cmsSignedData.getSignerInfos().getSigners().iterator().next();
-          Store<X509CertificateHolder> certificates = cmsSignedData.getCertificates();
-          Collection<X509CertificateHolder> certHolders = certificates.getMatches(signerInfo.getSID());
-          if (certHolders.size() != 1) {
-              throw new IllegalStateException("Impossible de récupérer le certificat associé à la signature.");
-          }
-          X509CertificateHolder certHolder = certHolders.iterator().next();
-          X509Certificate certificate = new JcaX509CertificateConverter().setProvider(new BouncyCastleProvider()).getCertificate(certHolder);
-          boolean verifie = signerInfo.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider(new BouncyCastleProvider()).build(certificate));
-          System.out.print(verifie);
-          if (verifie) {
-              return signSignature(pdfContent, certificateBytes);
- 
-          }
-          return pdfContent;
-      
-      
-    	
-    }
-    public Map<String, Boolean> verifiedSignature(byte[] pdfSigneContent) throws GeneralSecurityException, IOException {
-    	  Map<String, Boolean> Results= new HashMap<>();
 
-    	    
-    	Security.addProvider(new BouncyCastleProvider());
-			
-			        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(pdfSigneContent)) {
-
-			        PdfDocument pdfDocument = new PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(inputStream));
-			        SignatureUtil signatureUtil = new SignatureUtil(pdfDocument);
-			        List<String> names = signatureUtil.getSignatureNames();
-
-			        for (String name : names) {
-			            System.out.println("===== " + name + " =====");
-			            
-			            Results.put(name, verifySignature(signatureUtil, name));
-
-			        }
-			        pdfDocument.close();
-			      }
-			      return Results;
-			        
-			}
-			    private  boolean verifySignature(SignatureUtil signUtil, String name) throws GeneralSecurityException {
-			        PdfPKCS7 pkcs7 = signUtil.readSignatureData(name);
-			
-			        System.out.println("Signature covers whole document: " + signUtil.signatureCoversWholeDocument(name));
-			        System.out.println("Document revision: " + signUtil.getRevision(name) + " of " + signUtil.getTotalRevisions());
-			        System.out.println("Integrity and Authenticity check OK? " + pkcs7.verifySignatureIntegrityAndAuthenticity());
-			        return pkcs7.verifySignatureIntegrityAndAuthenticity();
-			    }      
+     
     
 }

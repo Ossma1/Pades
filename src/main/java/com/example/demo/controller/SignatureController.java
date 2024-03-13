@@ -42,17 +42,7 @@ public class SignatureController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     	}
-   /* @PostMapping("/PdfSignedToPades")
-    public ResponseEntity<byte[]> PdfSignedToPades(@RequestBody PdfSigningRequest request) throws Exception {
-    	try {
-            byte[] signedPdf = serviceAddSignature.PdfSignedToPadesService(request.getPdfContent(), request.getCertificateBytes());    
-            return ResponseEntity.ok()
-                    .body(signedPdf);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    	}*/
+   
     
     @GetMapping("/verifiedAddSignature")
     public byte[] verifiedAddSignature() throws IOException  {
@@ -79,9 +69,5 @@ public class SignatureController {
 		   
 		
     }
-    @GetMapping("/verifiedSignature")
-    public Map<String, Boolean> verifiedSignature(@RequestBody PdfResultRequest request) throws GeneralSecurityException, IOException {
-    	
-    	return serviceAddSignature.verifiedSignature(request.getPdfContent());
-    }
+   
 }
