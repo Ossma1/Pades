@@ -1,5 +1,6 @@
 package com.example.demo.services;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -8,16 +9,29 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.Certificate;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.cms.CMSSignedDataGenerator;
+import org.bouncycastle.cms.CMSTypedData;
+import org.bouncycastle.cms.SignerInformation;
+import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoGeneratorBuilder;
+import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.util.Store;
 import org.springframework.stereotype.Service;
 
 import com.itextpdf.commons.utils.FileUtil;
 import com.itextpdf.forms.fields.properties.SignedAppearanceText;
 import com.itextpdf.forms.form.element.SignatureFieldAppearance;
 import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.io.source.ByteArrayOutputStream;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.geom.Rectangle;
 import com.itextpdf.kernel.pdf.PdfReader;
@@ -44,64 +58,43 @@ import com.itextpdf.signatures.*;
 @Service
 public class AddSegnature {
     public AddSegnature() {}
-	private static final String CERT_PATH = System.getProperty("user.dir")+"/Files/mon_keystore.p12";
+	//private static final String CERT_PATH = System.getProperty("user.dir")+"/Files/mon_keystore.p12";
 
-    public static final String SRC = System.getProperty("user.dir")+"/Files/hello.pdf";
+    //public static final String SRC = System.getProperty("user.dir")+"/Files/hello.pdf";
     public static final String DEST = System.getProperty("user.dir")+"/Files/cv.pdf";
     public static final String IMAGE_PATH = System.getProperty("user.dir")+"/Files/Signature.svg";
 
-    private static final String SIGNATURE_NAME = "Signature1";
 
     private static final char[] PASSWORD = "oussama".toCharArray();
-    public String AddSignatureUsingAppearanceInstanceExample() throws Exception {
-    	 try {
-    	File file = new File(DEST);
-        file.getParentFile().mkdirs();
+    
+    public byte[] AddSignatureUsingAppearanceInstanceExample(byte[] pdfContent, byte[] certificateBytes) throws Exception {
+//    	File file = new File(DEST);
+//      file.getParentFile().mkdirs();
         Security.addProvider(new BouncyCastleProvider());
-        signSignature(SRC, DEST);
-        return "La signature a été ajoutée avec succès.";
-    	 } catch (Exception e) {
-    	        e.printStackTrace();
-    	        return "Erreur lors de l'ajout de la signature : "+e.getMessage();
-    	    }
+        return signSignature(pdfContent, certificateBytes);
+    	 
     }
-    /**
-     * Basic example of the signature appearance customizing during the document signing.
-     *
-     * @param src  source file
-     * @param dest destination file
-     *
-     * @throws Exception in case some exception occurred.
-     */
-    public void signSignature(String src, String dest) throws Exception {
-        PdfPadesSigner padesSigner = new PdfPadesSigner(new PdfReader(FileUtil.getInputStreamForFile(src)),
-                FileUtil.getFileOutputStream(dest));
-        // We can pass the appearance through the signer properties.
-        SignerProperties signerProperties = createSignerProperties();
+  
+    public byte[] signSignature(byte[] pdfContent, byte[] certificateBytes) throws Exception {
+    	try (ByteArrayInputStream pdfInputStream = new ByteArrayInputStream(pdfContent);
+    	         ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+    	        PdfPadesSigner padesSigner = new PdfPadesSigner(new PdfReader(pdfInputStream),
+    	        		outputStream);
+    	        SignerProperties signerProperties = createSignerProperties();
 
-        padesSigner.signWithBaselineBProfile(signerProperties, getCertificateChain(CERT_PATH,PASSWORD), getPrivateKey(CERT_PATH,PASSWORD));
+    	        padesSigner.signWithBaselineBProfile(signerProperties, getCertificateChain(certificateBytes,PASSWORD), getPrivateKey(certificateBytes,PASSWORD));
+    	    	  return outputStream.toByteArray();
+    
+    	}
     }
 
-    /**
-     * Creates properties to be used in signing operations. Also creates the appearance that will be passed to the
-     * PDF signer through the signer properties.
-     *
-     * @return {@link SignerProperties} properties to be used for main signing operation.
-     *
-     * @throws IOException in case an I/O error occurs when reading the file.
-     */
+   
     protected SignerProperties createSignerProperties() throws IOException {
         SignerProperties signerProperties = new SignerProperties().setFieldName("Signature1");
 
-        // Create the appearance instance and set the signature content to be shown and different appearance properties.
         SignatureFieldAppearance appearance = new SignatureFieldAppearance(signerProperties.getFieldName())
                 .setContent(new SignedAppearanceText().setReasonLine("Customized reason: Reason").setLocationLine("Customized location: Location"), ImageDataFactory.create(IMAGE_PATH))
               ;
-
-        // Note that if SignedAppearanceText is set as a content, description text will be generated automatically, but
-        // any `visual` values can be changed by using the appropriate setters. This won't affect the signature dictionary.
-
-        // Set created signature appearance and other signer properties.
         signerProperties
                 .setSignatureAppearance(appearance)
                 .setPageNumber(1)
@@ -111,17 +104,12 @@ public class AddSegnature {
         return signerProperties;
     }
 
-    /**
-     * Creates signing chain for the sample. This chain shouldn't be used for the real signing.
-     * @param certificatePath
-     * @param password
-     * @return the chain of certificates to be used for the signing operation.
-     */
-    private static Certificate[] getCertificateChain(String certificatePath, char[] password) throws Exception {
+
+    private static Certificate[] getCertificateChain(byte[] certificateBytes, char[] password) throws Exception {
         Certificate[] certChain = null;
 
         KeyStore p12 = KeyStore.getInstance("pkcs12");
-        p12.load(new FileInputStream(certificatePath), password);
+        p12.load(new  ByteArrayInputStream(certificateBytes), password);
 
         Enumeration<String> aliases = p12.aliases();
         while (aliases.hasMoreElements()) {
@@ -134,37 +122,57 @@ public class AddSegnature {
         return certChain;
     }
 
-    /**
-     * Creates private key for the sample. This key shouldn't be used for the real signing.
-     * @param certificatePath
-     * @param password
-     * @return {@link PrivateKey} instance to be used for the main signing operation.
-     */
-    private static PrivateKeySignature getPrivateKey(String certificatePath, char[] password) throws Exception {
+    private static PrivateKeySignature getPrivateKey(byte[] certificateBytes, char[] password) throws Exception {
         PrivateKey pk = null;
 
         KeyStore p12 = KeyStore.getInstance("pkcs12");
-        p12.load(new FileInputStream(certificatePath), password);
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(certificateBytes)) {
+            p12.load(inputStream, password);
 
-        Enumeration<String> aliases = p12.aliases();
-        while (aliases.hasMoreElements()) {
-            String alias = aliases.nextElement();
-            if (p12.isKeyEntry(alias)) {
-                pk = (PrivateKey) p12.getKey(alias, password);
-                break;
+            Enumeration<String> aliases = p12.aliases();
+            while (aliases.hasMoreElements()) {
+                String alias = aliases.nextElement();
+                if (p12.isKeyEntry(alias)) {
+                    pk = (PrivateKey) p12.getKey(alias, password);
+                    break;
+                }
             }
         }
+
         Security.addProvider(new BouncyCastleProvider());
         return new PrivateKeySignature(pk, DigestAlgorithms.SHA512, BouncyCastleProvider.PROVIDER_NAME);
     }
-    public Map<String, Boolean> verifiedSignature() throws GeneralSecurityException, IOException {
+    
+    public byte[] PdfSignedToPadesService(byte[] pdfContent, byte[] certificateBytes) throws Exception {
+    	  CMSSignedData cmsSignedData = new CMSSignedData(pdfContent);
+          SignerInformation signerInfo = (SignerInformation) cmsSignedData.getSignerInfos().getSigners().iterator().next();
+          Store<X509CertificateHolder> certificates = cmsSignedData.getCertificates();
+          Collection<X509CertificateHolder> certHolders = certificates.getMatches(signerInfo.getSID());
+          if (certHolders.size() != 1) {
+              throw new IllegalStateException("Impossible de récupérer le certificat associé à la signature.");
+          }
+          X509CertificateHolder certHolder = certHolders.iterator().next();
+          X509Certificate certificate = new JcaX509CertificateConverter().setProvider(new BouncyCastleProvider()).getCertificate(certHolder);
+          boolean verifie = signerInfo.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider(new BouncyCastleProvider()).build(certificate));
+          System.out.print(verifie);
+          if (verifie) {
+              return signSignature(pdfContent, certificateBytes);
+ 
+          }
+          return pdfContent;
+      
+      
+    	
+    }
+    public Map<String, Boolean> verifiedSignature(byte[] pdfSigneContent) throws GeneralSecurityException, IOException {
     	  Map<String, Boolean> Results= new HashMap<>();
 
     	    
     	Security.addProvider(new BouncyCastleProvider());
-			        String signedPdfPath = DEST;
 			
-			        PdfDocument pdfDocument = new PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(signedPdfPath));
+			        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(pdfSigneContent)) {
+
+			        PdfDocument pdfDocument = new PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(inputStream));
 			        SignatureUtil signatureUtil = new SignatureUtil(pdfDocument);
 			        List<String> names = signatureUtil.getSignatureNames();
 
@@ -175,6 +183,7 @@ public class AddSegnature {
 
 			        }
 			        pdfDocument.close();
+			      }
 			      return Results;
 			        
 			}
